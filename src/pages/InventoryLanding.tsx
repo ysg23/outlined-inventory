@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Package, Zap, Filter, BarChart3, Shield, ArrowRight, Play, CheckCircle, Star, TrendingUp, Users, Clock } from 'lucide-react';
 import { DemoInventoryDashboard } from '@/components/inventory/demo-data';
 import { ApiSetup } from '@/components/inventory/api-setup';
 import { InventoryDashboard } from '@/components/inventory/inventory-dashboard';
 import { LightspeedCredentials } from '@/types/lightspeed';
+import { CredentialManager } from '@/lib/credential-manager';
 
 type PageState = 'landing' | 'demo' | 'setup' | 'dashboard';
 
@@ -11,12 +12,22 @@ export default function InventoryLanding() {
   const [pageState, setPageState] = useState<PageState>('landing');
   const [credentials, setCredentials] = useState<LightspeedCredentials | null>(null);
 
+  // Load saved credentials on mount
+  useEffect(() => {
+    const savedCredentials = CredentialManager.loadCredentials();
+    if (savedCredentials) {
+      setCredentials(savedCredentials);
+      setPageState('dashboard');
+    }
+  }, []);
+
   const handleCredentialsSubmit = (newCredentials: LightspeedCredentials) => {
     setCredentials(newCredentials);
     setPageState('dashboard');
   };
 
   const handleDisconnect = () => {
+    CredentialManager.clearCredentials();
     setCredentials(null);
     setPageState('landing');
   };

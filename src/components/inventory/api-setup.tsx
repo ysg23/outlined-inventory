@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Eye, EyeOff, Info, ExternalLink } from 'lucide-react';
+import { Eye, EyeOff, Info, ExternalLink, Shield, AlertTriangle } from 'lucide-react';
 import { LightspeedCredentials } from '@/types/lightspeed';
+import { CredentialManager } from '@/lib/credential-manager';
 
 interface ApiSetupProps {
   onCredentialsSubmit: (credentials: LightspeedCredentials) => void;
@@ -17,23 +18,48 @@ export function ApiSetup({ onCredentialsSubmit }: ApiSetupProps) {
   const [apiVersion, setApiVersion] = useState<'r-series' | 'x-series'>('r-series');
   const [showSecret, setShowSecret] = useState(false);
   const [showToken, setShowToken] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsValidating(true);
+    setValidationError(null);
     
-    // Clean up credentials based on API version
-    const cleanCredentials: LightspeedCredentials = {
-      apiKey: credentials.apiKey,
-      secret: credentials.secret,
-      cluster: credentials.cluster,
-    };
+    try {
+      // Clean up credentials based on API version
+      const cleanCredentials: LightspeedCredentials = {
+        apiKey: credentials.apiKey,
+        secret: credentials.secret,
+        cluster: credentials.cluster,
+      };
 
-    if (apiVersion === 'x-series') {
-      cleanCredentials.domain = credentials.domain;
-      cleanCredentials.accessToken = credentials.accessToken;
+      if (apiVersion === 'x-series') {
+        cleanCredentials.domain = credentials.domain;
+        cleanCredentials.accessToken = credentials.accessToken;
+      }
+
+      // Validate credentials format
+      if (!CredentialManager.validateCredentials(cleanCredentials)) {
+        throw new Error('Invalid credential format. Please check all required fields.');
+      }
+
+      // Test API connection
+      const isValid = await CredentialManager.testConnection(cleanCredentials);
+      if (!isValid) {
+        throw new Error('Unable to connect to Lightspeed API. Please verify your credentials.');
+      }
+
+      // Save credentials securely
+      CredentialManager.saveCredentials(cleanCredentials);
+      
+      // Submit to parent component
+      onCredentialsSubmit(cleanCredentials);
+    } catch (error) {
+      setValidationError(error instanceof Error ? error.message : 'Connection failed');
+    } finally {
+      setIsValidating(false);
     }
-
-    onCredentialsSubmit(cleanCredentials);
   };
 
   return (
@@ -206,12 +232,30 @@ export function ApiSetup({ onCredentialsSubmit }: ApiSetupProps) {
               </>
             )}
 
+            {/* Validation Error */}
+            {validationError && (
+              <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <div className="flex items-center space-x-2">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  <span className="text-sm text-destructive">{validationError}</span>
+                </div>
+              </div>
+            )}
+
             <div>
               <button
                 type="submit"
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                disabled={isValidating}
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Connect to Lightspeed
+                {isValidating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
+                    Validating Connection...
+                  </>
+                ) : (
+                  'Connect to Lightspeed'
+                )}
               </button>
             </div>
           </form>
