@@ -17,11 +17,23 @@ export default function Index() {
       setApiStatus('testing');
       setError('');
       
-      // Test the API connection by trying to fetch inventory
+      // First test basic endpoint
+      console.log('Testing basic endpoint...');
+      const testResponse = await fetch('/api/test');
+      console.log('Test endpoint response:', testResponse.status);
+      
+      if (testResponse.ok) {
+        const testData = await testResponse.json();
+        console.log('Test endpoint data:', testData);
+      }
+      
+      // Then test the actual API connection by trying to fetch inventory
+      console.log('Testing inventory endpoint...');
       await apiClient.getInventory();
       
       setApiStatus('connected');
     } catch (err) {
+      console.error('API test failed:', err);
       setApiStatus('error');
       setError(err instanceof Error ? err.message : 'Failed to connect to Lightspeed API');
     }

@@ -26,6 +26,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    console.log('Environment variables check:', {
+      hasApiKey: !!process.env.LIGHTSPEED_API_KEY,
+      hasSecret: !!process.env.LIGHTSPEED_SECRET,
+      hasCluster: !!process.env.LIGHTSPEED_CLUSTER,
+      cluster: process.env.LIGHTSPEED_CLUSTER
+    });
+
     const credentials: LightspeedCredentials = {
       apiKey: process.env.LIGHTSPEED_API_KEY || '',
       secret: process.env.LIGHTSPEED_SECRET || '',
@@ -33,7 +40,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     if (!credentials.apiKey || !credentials.secret || !credentials.cluster) {
-      return res.status(500).json({ error: 'Missing Lightspeed credentials' });
+      console.error('Missing credentials:', credentials);
+      return res.status(500).json({ 
+        error: 'Missing Lightspeed credentials',
+        debug: {
+          hasApiKey: !!credentials.apiKey,
+          hasSecret: !!credentials.secret,
+          hasCluster: !!credentials.cluster
+        }
+      });
     }
 
     const { size } = req.query;
@@ -48,14 +63,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       'Content-Type': 'application/json',
     };
 
+    console.log('Making API calls to:', baseUrl);
+
     // Fetch products and variants
     const [productsResponse, variantsResponse] = await Promise.all([
       fetch(`${baseUrl}/Item.json?load_relations=["Category","ItemShops"]&limit=100`, { headers }),
       fetch(`${baseUrl}/ItemMatrix.json?load_relations=["Item"]&limit=100`, { headers })
     ]);
 
+    console.log('API Response status:', {
+      products: productsResponse.status,
+      variants: variantsResponse.status
+    });
+
     if (!productsResponse.ok || !variantsResponse.ok) {
-      throw new Error('Failed to fetch data from Lightspeed API');
+      const productError = !productsResponse.ok ? await productsResponse.text() : null;
+      const variantError = !variantsResponse.ok ? await variantsResponse.text() : null;
+      
+      console.error('API call failed:', {
+        productsStatus: productsResponse.status,
+        variantsStatus: variantsResponse.status,
+        productError,
+        variantError
+      });
+      
+      throw new Error(`Failed to fetch data from Lightspeed API. Products: ${productsResponse.status}, Variants: ${variantsResponse.status}`);
     }
 
     const productsData = await productsResponse.json();

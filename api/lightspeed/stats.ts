@@ -14,6 +14,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    console.log('Stats API - Environment variables check:', {
+      hasApiKey: !!process.env.LIGHTSPEED_API_KEY,
+      hasSecret: !!process.env.LIGHTSPEED_SECRET,
+      hasCluster: !!process.env.LIGHTSPEED_CLUSTER
+    });
+
     const credentials = {
       apiKey: process.env.LIGHTSPEED_API_KEY || '',
       secret: process.env.LIGHTSPEED_SECRET || '',
@@ -21,6 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     if (!credentials.apiKey || !credentials.secret || !credentials.cluster) {
+      console.error('Stats API - Missing credentials');
       return res.status(500).json({ error: 'Missing Lightspeed credentials' });
     }
 

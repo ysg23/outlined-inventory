@@ -14,13 +14,20 @@ export class ApiClient {
         url.searchParams.set('size', size);
       }
 
+      console.log('Fetching inventory from:', url.toString());
       const response = await fetch(url.toString());
       
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('API Error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('Received inventory data:', data);
       return data.items || [];
     } catch (error) {
       console.error('Error fetching inventory:', error);
