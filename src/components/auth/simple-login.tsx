@@ -17,7 +17,7 @@ export function SimpleLogin() {
     // Direct OAuth URL with hardcoded values to avoid API call
     const oauthParams = new URLSearchParams({
       client_id: '0da080a6fe48646365e4ebb427623d45179c98d306c270090b30c8d507c95e0',
-      redirect_uri: 'https://inventory.outlined.ca/oauth/callback',
+      redirect_uri: 'https://outlined-inventory.vercel.app/oauth/callback',
       scope: 'employee:register employee:inventory',
       state: state,
       response_type: 'code'
