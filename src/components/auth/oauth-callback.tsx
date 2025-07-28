@@ -34,7 +34,7 @@ export function OAuthCallback() {
         }
 
         // Exchange authorization code for access token
-        const tokenResponse = await fetch('/api/lightspeed/auth', {
+        const tokenResponse = await fetch('/api/oauth', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

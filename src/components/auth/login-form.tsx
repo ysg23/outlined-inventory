@@ -14,7 +14,7 @@ export function LoginForm() {
 
   // Load OAuth configuration on component mount
   useEffect(() => {
-    fetch('/api/lightspeed/auth')
+    fetch('/api/oauth')
       .then(res => res.json())
       .then(config => setOauthConfig(config))
       .catch(err => console.error('Failed to load OAuth config:', err));
