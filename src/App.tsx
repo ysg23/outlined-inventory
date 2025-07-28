@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import InventoryLanding from "./pages/InventoryLanding";
-import { LoginForm } from "./components/auth/login-form";
+import { SimpleLogin } from "./components/auth/simple-login";
 import { OAuthCallback } from "./components/auth/oauth-callback";
 import { ProtectedRoute } from "./components/auth/protected-route";
 
@@ -29,7 +29,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<LoginForm />} />
+          <Route path="/login" element={<SimpleLogin />} />
           <Route path="/oauth/callback" element={<OAuthCallback />} />
           <Route 
             path="/" 
