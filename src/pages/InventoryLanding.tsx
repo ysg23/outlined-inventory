@@ -60,7 +60,7 @@ export default function InventoryLanding() {
             Disconnect API
           </button>
         </div>
-        <InventoryDashboard credentials={credentials} />
+        <InventoryDashboard />
       </div>
     );
   }

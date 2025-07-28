@@ -1,17 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Search, Package, AlertTriangle } from 'lucide-react';
-import { InventoryItem, InventoryFilters, InventoryStats, LightspeedCredentials } from '@/types/lightspeed';
-import { LightspeedAPI } from '@/lib/lightspeed-api';
+import { InventoryItem, InventoryFilters, InventoryStats } from '@/types/lightspeed';
+import { apiClient } from '@/lib/api-client';
+import { filterInventory } from '@/lib/inventory-utils';
 import { InventoryCard } from './inventory-card';
 import { InventoryFiltersComponent } from './inventory-filters';
 import { InventoryStatsComponent } from './inventory-stats';
 import { SizeSelector } from './size-selector';
 
-interface InventoryDashboardProps {
-  credentials: LightspeedCredentials;
-}
+interface InventoryDashboardProps {}
 
-export function InventoryDashboard({ credentials }: InventoryDashboardProps) {
+export function InventoryDashboard() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,13 +23,11 @@ export function InventoryDashboard({ credentials }: InventoryDashboardProps) {
     searchTerm: '',
   });
 
-  const api = useMemo(() => new LightspeedAPI(credentials), [credentials]);
-
   const loadInventory = async () => {
     try {
       setLoading(true);
       setError(null);
-      const items = await api.getAllInventory();
+      const items = await apiClient.getInventory();
       setInventory(items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load inventory');
@@ -43,7 +40,7 @@ export function InventoryDashboard({ credentials }: InventoryDashboardProps) {
     try {
       setLoading(true);
       setError(null);
-      const items = await api.getInventoryBySize(size);
+      const items = await apiClient.getInventory(size);
       setInventory(items);
       setFilters(prev => ({ ...prev, sizes: [size] }));
     } catch (err) {
@@ -58,8 +55,8 @@ export function InventoryDashboard({ credentials }: InventoryDashboardProps) {
   }, []);
 
   const filteredInventory = useMemo(() => {
-    return api.filterInventory(inventory, filters);
-  }, [inventory, filters, api]);
+    return filterInventory(inventory, filters);
+  }, [inventory, filters]);
 
   const stats = useMemo(() => {
     if (filteredInventory.length === 0) return null;
