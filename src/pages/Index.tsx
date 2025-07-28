@@ -1,73 +1,108 @@
-import { ArrowRight, BarChart3, Shield, Zap } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Package, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { InventoryDashboard } from '@/components/inventory/inventory-dashboard';
+import { apiClient } from '@/lib/api-client';
 
 export default function Index() {
+  const [apiStatus, setApiStatus] = useState<'testing' | 'connected' | 'error'>('testing');
+  const [error, setError] = useState<string>('');
+  const [showDashboard, setShowDashboard] = useState(false);
+
+  useEffect(() => {
+    testApiConnection();
+  }, []);
+
+  const testApiConnection = async () => {
+    try {
+      setApiStatus('testing');
+      setError('');
+      
+      // Test the API connection by trying to fetch inventory
+      await apiClient.getInventory();
+      
+      setApiStatus('connected');
+    } catch (err) {
+      setApiStatus('error');
+      setError(err instanceof Error ? err.message : 'Failed to connect to Lightspeed API');
+    }
+  };
+
+  if (showDashboard) {
+    return <InventoryDashboard />;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Hero Section */}
-      <div className="container mx-auto px-4 pt-16 pb-24">
-        <div className="text-center max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
-            <Shield className="h-4 w-4" />
-            Secure Lightspeed Integration
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        <div className="bg-card rounded-2xl shadow-xl border p-8 text-center">
+          <div className="mb-6">
+            <Package className="h-16 w-16 text-primary mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              Lightspeed Inventory Dashboard
+            </h1>
+            <p className="text-muted-foreground">
+              Testing API connection...
+            </p>
           </div>
-          
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-            Inventory Dashboard
-            <span className="block text-primary">for Lightspeed</span>
-          </h1>
-          
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Connect your Lightspeed store to view real-time inventory, filter by size, 
-            track stock levels, and manage your products with ease.
-          </p>
-          
-          <Button size="lg" asChild>
-            <a href="/login">
-              Access Dashboard
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </a>
-          </Button>
-        </div>
 
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-6 mt-16 max-w-5xl mx-auto">
-          <Card>
-            <CardHeader>
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-2">
-                <BarChart3 className="h-6 w-6 text-primary" />
+          <div className="space-y-6">
+            {/* API Status */}
+            <div className="bg-muted/50 rounded-lg p-4">
+              <div className="flex items-center justify-center space-x-3 mb-2">
+                {apiStatus === 'testing' && (
+                  <>
+                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                    <span className="text-foreground font-medium">Testing Connection...</span>
+                  </>
+                )}
+                {apiStatus === 'connected' && (
+                  <>
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <span className="text-green-600 font-medium">API Connected!</span>
+                  </>
+                )}
+                {apiStatus === 'error' && (
+                  <>
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <span className="text-destructive font-medium">Connection Failed</span>
+                  </>
+                )}
               </div>
-              <CardTitle>Real-time Analytics</CardTitle>
-              <CardDescription>
-                View live inventory levels, stock alerts, and product performance metrics
-              </CardDescription>
-            </CardHeader>
-          </Card>
+              
+              {error && (
+                <p className="text-sm text-destructive mt-2">{error}</p>
+              )}
+            </div>
 
-          <Card>
-            <CardHeader>
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-2">
-                <Shield className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle>Secure Connection</CardTitle>
-              <CardDescription>
-                OAuth authentication with your Lightspeed account for maximum security
-              </CardDescription>
-            </CardHeader>
-          </Card>
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              {apiStatus === 'connected' && (
+                <button
+                  onClick={() => setShowDashboard(true)}
+                  className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground py-3 px-6 rounded-lg font-semibold hover:from-primary/90 hover:to-secondary/90 transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  Open Inventory Dashboard
+                </button>
+              )}
+              
+              {apiStatus === 'error' && (
+                <button
+                  onClick={testApiConnection}
+                  className="w-full bg-muted text-foreground py-3 px-6 rounded-lg font-medium hover:bg-muted/80 transition-colors border border-border"
+                >
+                  Retry Connection
+                </button>
+              )}
+            </div>
 
-          <Card>
-            <CardHeader>
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-2">
-                <Zap className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle>Size-based Filtering</CardTitle>
-              <CardDescription>
-                Quickly find products by size, category, brand, and stock status
-              </CardDescription>
-            </CardHeader>
-          </Card>
+            {/* Status Info */}
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>Using environment variables:</p>
+              <p>• LIGHTSPEED_API_KEY</p>
+              <p>• LIGHTSPEED_SECRET</p>
+              <p>• LIGHTSPEED_CLUSTER</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
