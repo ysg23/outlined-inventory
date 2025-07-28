@@ -29,9 +29,16 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
           <Route path="/login" element={<LoginForm />} />
           <Route path="/oauth/callback" element={<OAuthCallback />} />
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute>
+                <Index />
+              </ProtectedRoute>
+            } 
+          />
           <Route 
             path="/inventory" 
             element={
