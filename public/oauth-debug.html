@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Debug - Lightspeed</title>
+    <style>
+        body { font-family: monospace; margin: 20px; background: #f0f0f0; }
+        .container { background: white; padding: 20px; border-radius: 8px; max-width: 800px; }
+        .param { margin: 10px 0; padding: 10px; background: #f8f9fa; border-left: 4px solid #007bff; }
+        .param strong { color: #007bff; }
+        .url { word-break: break-all; background: #e9ecef; padding: 10px; margin: 10px 0; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 10px 5px; }
+        button:hover { background: #0056b3; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 OAuth Debug Tool</h1>
+        <p>This tool shows exactly what OAuth parameters will be sent to Lightspeed.</p>
+        
+        <div class="warning">
+            <strong>⚠️ Debug Mode:</strong> Check all parameters below before testing
+        </div>
+
+        <div id="oauth-params">
+            <h3>OAuth Parameters:</h3>
+            <div class="param">
+                <strong>Client ID:</strong> 
+                <span id="client-id">0da080a6fe48646365e4ebb427623d45179c98d306c270090b30c8d507c95e0</span>
+            </div>
+            <div class="param">
+                <strong>Redirect URI:</strong> 
+                <span id="redirect-uri">https://outlined-inventory.vercel.app/oauth/callback</span>
+            </div>
+            <div class="param">
+                <strong>Scopes:</strong> 
+                <span id="scopes">employee:register employee:inventory</span>
+            </div>
+            <div class="param">
+                <strong>Response Type:</strong> 
+                <span id="response-type">code</span>
+            </div>
+            <div class="param">
+                <strong>State:</strong> 
+                <span id="state">[Generated on click]</span>
+            </div>
+        </div>
+
+        <h3>Generated OAuth URL:</h3>
+        <div id="oauth-url" class="url">[Click 'Generate URL' to see]</div>
+
+        <button onclick="generateUrl()">🔗 Generate OAuth URL</button>
+        <button onclick="testUrl()" id="test-btn" disabled>🧪 Test OAuth Flow</button>
+        <button onclick="copyUrl()" id="copy-btn" disabled>📋 Copy URL</button>
+
+        <div id="instructions" style="margin-top: 20px; display: none;">
+            <h3>📋 Instructions:</h3>
+            <ol>
+                <li>Click "Generate OAuth URL" to create the authorization URL</li>
+                <li>Copy the URL and manually paste it in a new incognito tab</li>
+                <li>OR click "Test OAuth Flow" to redirect directly</li>
+                <li>Watch for any redirect loops or errors</li>
+            </ol>
+        </div>
+
+        <div id="lightspeed-info" style="margin-top: 20px;">
+            <h3>📚 Lightspeed OAuth Endpoints:</h3>
+            <div class="param">
+                <strong>Authorization URL:</strong> https://cloud.lightspeedapp.com/auth/oauth/authorize
+            </div>
+            <div class="param">
+                <strong>Token URL:</strong> https://cloud.lightspeedapp.com/auth/oauth/token
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let generatedUrl = '';
+
+        function generateUrl() {
+            // Generate random state
+            const state = Math.random().toString(36).substring(2, 15) + 
+                         Math.random().toString(36).substring(2, 15);
+            
+            document.getElementById('state').textContent = state;
+            
+            // Build OAuth URL
+            const params = new URLSearchParams({
+                client_id: '0da080a6fe48646365e4ebb427623d45179c98d306c270090b30c8d507c95e0',
+                redirect_uri: 'https://outlined-inventory.vercel.app/oauth/callback',
+                scope: 'employee:register employee:inventory',
+                state: state,
+                response_type: 'code'
+            });
+            
+            generatedUrl = `https://cloud.lightspeedapp.com/auth/oauth/authorize?${params}`;
+            
+            document.getElementById('oauth-url').textContent = generatedUrl;
+            document.getElementById('test-btn').disabled = false;
+            document.getElementById('copy-btn').disabled = false;
+            document.getElementById('instructions').style.display = 'block';
+            
+            // Save state for later verification
+            localStorage.setItem('lightspeed-oauth-state', state);
+            
+            console.log('Generated OAuth URL:', generatedUrl);
+        }
+
+        function testUrl() {
+            if (generatedUrl) {
+                console.log('Redirecting to OAuth URL...');
+                window.location.href = generatedUrl;
+            }
+        }
+
+        function copyUrl() {
+            if (generatedUrl) {
+                navigator.clipboard.writeText(generatedUrl).then(() => {
+                    alert('OAuth URL copied to clipboard!');
+                });
+            }
+        }
+
+        // Show current timestamp for debugging
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('OAuth Debug Tool loaded at:', new Date().toISOString());
+        });
+    </script>
+</body>
+</html>
