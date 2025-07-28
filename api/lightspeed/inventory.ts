@@ -5,6 +5,12 @@ interface LightspeedCredentials {
   accountId: string;
 }
 
+interface AuthTokens {
+  accessToken: string;
+  accountId: string;
+  refreshToken?: string;
+}
+
 interface InventoryItem {
   id: string;
   title: string;
@@ -20,32 +26,43 @@ interface InventoryItem {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    console.log('Environment variables check:', {
-      hasAccessToken: !!process.env.LIGHTSPEED_ACCESS_TOKEN,
-      hasAccountId: !!process.env.LIGHTSPEED_ACCOUNT_ID,
-      accountId: process.env.LIGHTSPEED_ACCOUNT_ID
-    });
+    // Get credentials from request headers (sent by frontend)
+    const authHeader = req.headers.authorization;
+    const accountId = req.headers['x-account-id'] as string;
 
-    const credentials: LightspeedCredentials = {
-      accessToken: process.env.LIGHTSPEED_ACCESS_TOKEN || '',
-      accountId: process.env.LIGHTSPEED_ACCOUNT_ID || '',
-    };
-
-    if (!credentials.accessToken || !credentials.accountId) {
-      console.error('Missing credentials:', credentials);
-      return res.status(500).json({ 
-        error: 'Missing Lightspeed credentials - need LIGHTSPEED_ACCESS_TOKEN and LIGHTSPEED_ACCOUNT_ID',
-        debug: {
-          hasAccessToken: !!credentials.accessToken,
-          hasAccountId: !!credentials.accountId
-        }
+    if (!authHeader || !authHeader.startsWith('Bearer ') || !accountId) {
+      return res.status(401).json({ 
+        error: 'Missing authentication credentials',
+        message: 'Please provide access token and account ID in headers'
       });
     }
+
+    const accessToken = authHeader.replace('Bearer ', '');
+
+    const credentials: LightspeedCredentials = {
+      accessToken,
+      accountId,
+    };
+
+    console.log('Using OAuth credentials for inventory request:', {
+      hasAccessToken: !!credentials.accessToken,
+      hasAccountId: !!credentials.accountId,
+      accountId: credentials.accountId
+    });
 
     const { size } = req.query;
     

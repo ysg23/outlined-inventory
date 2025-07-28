@@ -27,34 +27,46 @@ export function OAuthCallback() {
           throw new Error('No authorization code received');
         }
 
-        // Get stored OAuth state (domain)
+        // Verify OAuth state for security
         const storedState = localStorage.getItem('lightspeed-oauth-state');
         if (!storedState || storedState !== state) {
-          throw new Error('Invalid OAuth state');
+          throw new Error('Invalid OAuth state - possible CSRF attack');
         }
 
-        const domain = localStorage.getItem('lightspeed-oauth-domain');
-        if (!domain) {
-          throw new Error('No domain found in OAuth state');
+        // Exchange authorization code for access token
+        const tokenResponse = await fetch('/api/lightspeed/auth', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            code: code,
+            state: state
+          })
+        });
+
+        if (!tokenResponse.ok) {
+          const errorData = await tokenResponse.json();
+          throw new Error(errorData.error || 'Failed to exchange authorization code');
         }
 
-        // Exchange code for access token
+        const tokenData = await tokenResponse.json();
+
+        // Save the access token and account ID securely
         const credentials: LightspeedCredentials = {
-          domain,
-          accessToken: code, // In a real implementation, you'd exchange this for an actual token
-          apiKey: '',
-          secret: '',
-          cluster: 'us1'
+          accessToken: tokenData.access_token,
+          apiKey: '', // Not needed for OAuth
+          secret: '', // Not needed for OAuth
+          cluster: 'us1', // Default cluster
+          domain: '' // Not needed for R-Series
         };
 
-        // Test the connection
-        const connectionValid = await CredentialManager.testConnection(credentials);
-        if (!connectionValid) {
-          throw new Error('Failed to validate API connection');
-        }
-
-        // Save credentials
+        // Save credentials and additional OAuth data
         CredentialManager.saveCredentials(credentials);
+        localStorage.setItem('lightspeed-access-token', tokenData.access_token);
+        localStorage.setItem('lightspeed-account-id', tokenData.account_id);
+        localStorage.setItem('lightspeed-refresh-token', tokenData.refresh_token);
+        localStorage.setItem('lightspeed-token-expires', (Date.now() + (tokenData.expires_in * 1000)).toString());
         
         // Mark as authenticated
         localStorage.setItem('lightspeed-authenticated', 'true');

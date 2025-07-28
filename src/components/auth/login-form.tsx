@@ -78,26 +78,27 @@ export function LoginForm() {
         <CardContent className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="domain">Store Domain</Label>
-              <Input
-                id="domain"
-                placeholder="your-store-name"
-                value={domain}
-                onChange={(e) => setDomain(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleOAuthLogin()}
-              />
-              <p className="text-xs text-muted-foreground">
-                Enter your Lightspeed store domain (without .retail.lightspeed.app)
+              <p className="text-sm text-muted-foreground text-center">
+                Click below to securely connect with your Lightspeed Retail account
               </p>
             </div>
             
             <Button 
               onClick={handleOAuthLogin} 
               className="w-full" 
-              disabled={isLoading || !domain.trim()}
+              disabled={isLoading || !oauthConfig}
             >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Connect with Lightspeed
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Connect with Lightspeed
+                </>
+              )}
             </Button>
           </div>
 

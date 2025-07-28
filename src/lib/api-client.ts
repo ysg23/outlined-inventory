@@ -7,6 +7,21 @@ export class ApiClient {
     this.baseUrl = window.location.origin;
   }
 
+  private getAuthHeaders(): HeadersInit {
+    const accessToken = localStorage.getItem('lightspeed-access-token');
+    const accountId = localStorage.getItem('lightspeed-account-id');
+
+    if (!accessToken || !accountId) {
+      throw new Error('Missing authentication credentials. Please log in again.');
+    }
+
+    return {
+      'Authorization': `Bearer ${accessToken}`,
+      'X-Account-ID': accountId,
+      'Content-Type': 'application/json'
+    };
+  }
+
   async getInventory(size?: string): Promise<InventoryItem[]> {
     try {
       const url = new URL('/api/lightspeed/inventory', this.baseUrl);
@@ -15,7 +30,10 @@ export class ApiClient {
       }
 
       console.log('Fetching inventory from:', url.toString());
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: this.getAuthHeaders()
+      });
       
       console.log('Response status:', response.status);
       console.log('Response headers:', Object.fromEntries(response.headers.entries()));
@@ -37,7 +55,10 @@ export class ApiClient {
 
   async getInventoryStats(): Promise<InventoryStats> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/lightspeed/stats`);
+      const response = await fetch(`${this.baseUrl}/api/lightspeed/stats`, {
+        method: 'GET',
+        headers: this.getAuthHeaders()
+      });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
