@@ -1,9 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
 interface LightspeedCredentials {
-  apiKey: string;
-  secret: string;
-  cluster: string;
+  accessToken: string;
+  accountId: string;
 }
 
 interface InventoryItem {
@@ -27,39 +26,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     console.log('Environment variables check:', {
-      hasApiKey: !!process.env.LIGHTSPEED_API_KEY,
-      hasSecret: !!process.env.LIGHTSPEED_SECRET,
-      hasCluster: !!process.env.LIGHTSPEED_CLUSTER,
-      cluster: process.env.LIGHTSPEED_CLUSTER
+      hasAccessToken: !!process.env.LIGHTSPEED_ACCESS_TOKEN,
+      hasAccountId: !!process.env.LIGHTSPEED_ACCOUNT_ID,
+      accountId: process.env.LIGHTSPEED_ACCOUNT_ID
     });
 
     const credentials: LightspeedCredentials = {
-      apiKey: process.env.LIGHTSPEED_API_KEY || '',
-      secret: process.env.LIGHTSPEED_SECRET || '',
-      cluster: process.env.LIGHTSPEED_CLUSTER || '',
+      accessToken: process.env.LIGHTSPEED_ACCESS_TOKEN || '',
+      accountId: process.env.LIGHTSPEED_ACCOUNT_ID || '',
     };
 
-    if (!credentials.apiKey || !credentials.secret || !credentials.cluster) {
+    if (!credentials.accessToken || !credentials.accountId) {
       console.error('Missing credentials:', credentials);
       return res.status(500).json({ 
-        error: 'Missing Lightspeed credentials',
+        error: 'Missing Lightspeed credentials - need LIGHTSPEED_ACCESS_TOKEN and LIGHTSPEED_ACCOUNT_ID',
         debug: {
-          hasApiKey: !!credentials.apiKey,
-          hasSecret: !!credentials.secret,
-          hasCluster: !!credentials.cluster
+          hasAccessToken: !!credentials.accessToken,
+          hasAccountId: !!credentials.accountId
         }
       });
     }
 
     const { size } = req.query;
     
-    // Create base URL for R-Series API
-    const baseUrl = `https://api.lightspeedapp.com/API/Account/${credentials.cluster}`;
+    // Create base URL for R-Series API V3
+    const baseUrl = `https://api.lightspeedapp.com/API/V3/Account/${credentials.accountId}`;
     
-    // Create auth header
-    const auth = Buffer.from(`${credentials.apiKey}:${credentials.secret}`).toString('base64');
+    // Create auth header for OAuth Bearer token
     const headers = {
-      'Authorization': `Basic ${auth}`,
+      'Authorization': `Bearer ${credentials.accessToken}`,
       'Content-Type': 'application/json',
     };
 

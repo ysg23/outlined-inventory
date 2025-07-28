@@ -110,9 +110,8 @@ export default function Index() {
             {/* Status Info */}
             <div className="text-xs text-muted-foreground space-y-1">
               <p>Using environment variables:</p>
-              <p>• LIGHTSPEED_API_KEY</p>
-              <p>• LIGHTSPEED_SECRET</p>
-              <p>• LIGHTSPEED_CLUSTER</p>
+              <p>• LIGHTSPEED_ACCESS_TOKEN</p>
+              <p>• LIGHTSPEED_ACCOUNT_ID</p>
             </div>
           </div>
         </div>

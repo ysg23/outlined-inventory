@@ -15,29 +15,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     console.log('Stats API - Environment variables check:', {
-      hasApiKey: !!process.env.LIGHTSPEED_API_KEY,
-      hasSecret: !!process.env.LIGHTSPEED_SECRET,
-      hasCluster: !!process.env.LIGHTSPEED_CLUSTER
+      hasAccessToken: !!process.env.LIGHTSPEED_ACCESS_TOKEN,
+      hasAccountId: !!process.env.LIGHTSPEED_ACCOUNT_ID
     });
 
     const credentials = {
-      apiKey: process.env.LIGHTSPEED_API_KEY || '',
-      secret: process.env.LIGHTSPEED_SECRET || '',
-      cluster: process.env.LIGHTSPEED_CLUSTER || '',
+      accessToken: process.env.LIGHTSPEED_ACCESS_TOKEN || '',
+      accountId: process.env.LIGHTSPEED_ACCOUNT_ID || '',
     };
 
-    if (!credentials.apiKey || !credentials.secret || !credentials.cluster) {
+    if (!credentials.accessToken || !credentials.accountId) {
       console.error('Stats API - Missing credentials');
-      return res.status(500).json({ error: 'Missing Lightspeed credentials' });
+      return res.status(500).json({ error: 'Missing Lightspeed credentials - need LIGHTSPEED_ACCESS_TOKEN and LIGHTSPEED_ACCOUNT_ID' });
     }
 
-    // Create base URL for R-Series API
-    const baseUrl = `https://api.lightspeedapp.com/API/Account/${credentials.cluster}`;
+    // Create base URL for R-Series API V3
+    const baseUrl = `https://api.lightspeedapp.com/API/V3/Account/${credentials.accountId}`;
     
-    // Create auth header
-    const auth = Buffer.from(`${credentials.apiKey}:${credentials.secret}`).toString('base64');
+    // Create auth header for OAuth Bearer token
     const headers = {
-      'Authorization': `Basic ${auth}`,
+      'Authorization': `Bearer ${credentials.accessToken}`,
       'Content-Type': 'application/json',
     };
 
