@@ -24,7 +24,7 @@ export class ApiClient {
 
   async getInventory(size?: string): Promise<InventoryItem[]> {
     try {
-      const url = new URL('/api/lightspeed/inventory', this.baseUrl);
+      const url = new URL('/api/inventory', this.baseUrl);
       if (size) {
         url.searchParams.set('size', size);
       }
@@ -55,7 +55,7 @@ export class ApiClient {
 
   async getInventoryStats(): Promise<InventoryStats> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/lightspeed/stats`, {
+      const response = await fetch(`${this.baseUrl}/api/stats`, {
         method: 'GET',
         headers: this.getAuthHeaders()
       });
