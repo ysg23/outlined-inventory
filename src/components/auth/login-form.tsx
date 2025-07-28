@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,35 +9,50 @@ import { ExternalLink, Shield } from 'lucide-react';
 
 export function LoginForm() {
   const navigate = useNavigate();
-  const [domain, setDomain] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [oauthConfig, setOauthConfig] = useState<any>(null);
 
-  const handleOAuthLogin = () => {
-    if (!domain.trim()) {
-      alert('Please enter your store domain');
+  // Load OAuth configuration on component mount
+  useEffect(() => {
+    fetch('/api/lightspeed/auth')
+      .then(res => res.json())
+      .then(config => setOauthConfig(config))
+      .catch(err => console.error('Failed to load OAuth config:', err));
+  }, []);
+
+  const handleOAuthLogin = async () => {
+    if (!oauthConfig) {
+      alert('OAuth configuration not loaded. Please try again.');
       return;
     }
 
     setIsLoading(true);
     
-    // Generate state for security
-    const state = Math.random().toString(36).substring(2, 15);
-    localStorage.setItem('lightspeed-oauth-state', state);
-    localStorage.setItem('lightspeed-oauth-domain', domain);
+    try {
+      // Generate state for security
+      const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('lightspeed-oauth-state', state);
 
-    // Build OAuth URL
-    const oauthParams = new URLSearchParams({
-      client_id: 'your-client-id', // This would be configured
-      redirect_uri: 'https://inventory.outlined.ca/oauth/callback',
-      scope: 'read:products read:variants',
-      state: state,
-      response_type: 'code'
-    });
+      // Build OAuth URL using Lightspeed R-Series OAuth endpoint
+      const oauthParams = new URLSearchParams({
+        client_id: oauthConfig.clientId,
+        redirect_uri: oauthConfig.redirectUri,
+        scope: oauthConfig.scopes,
+        state: state,
+        response_type: 'code'
+      });
 
-    const oauthUrl = `https://${domain}.retail.lightspeed.app/oauth/authorize?${oauthParams}`;
-    
-    // Redirect to Lightspeed OAuth
-    window.location.href = oauthUrl;
+      const oauthUrl = `${oauthConfig.authUrl}?${oauthParams}`;
+      
+      console.log('Redirecting to OAuth URL:', oauthUrl);
+      
+      // Redirect to Lightspeed OAuth
+      window.location.href = oauthUrl;
+    } catch (error) {
+      console.error('OAuth login error:', error);
+      alert('Failed to initiate OAuth login. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   const handleDemoMode = () => {
