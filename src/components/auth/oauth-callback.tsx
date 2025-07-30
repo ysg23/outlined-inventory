@@ -54,7 +54,18 @@ export function OAuthCallback() {
 
         if (!tokenResponse.ok) {
           const errorData = await tokenResponse.json();
-          throw new Error(errorData.error || 'Failed to exchange authorization code');
+          const errorMessage = errorData.error || 'Failed to exchange authorization code';
+          
+          // Provide user-friendly error messages
+          if (tokenResponse.status === 400) {
+            throw new Error('Invalid authorization code. Please try connecting again.');
+          } else if (tokenResponse.status === 401) {
+            throw new Error('Authentication failed. Please check your Lightspeed credentials.');
+          } else if (tokenResponse.status >= 500) {
+            throw new Error('Lightspeed service is temporarily unavailable. Please try again later.');
+          } else {
+            throw new Error(`Connection failed: ${errorMessage}`);
+          }
         }
 
         const tokenData = await tokenResponse.json();
@@ -92,7 +103,25 @@ export function OAuthCallback() {
 
       } catch (err) {
         console.error('OAuth callback error:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error occurred');
+        
+        // Provide specific error messages for common issues
+        let userMessage = 'An unexpected error occurred. Please try again.';
+        
+        if (err instanceof Error) {
+          if (err.message.includes('OAuth error:')) {
+            userMessage = 'Lightspeed authorization was denied or cancelled. Please try again.';
+          } else if (err.message.includes('Invalid OAuth state')) {
+            userMessage = 'Security validation failed. Please clear your browser data and try again.';
+          } else if (err.message.includes('Missing PKCE')) {
+            userMessage = 'Security setup incomplete. Please refresh the page and try again.';
+          } else if (err.message.includes('No authorization code')) {
+            userMessage = 'Authorization incomplete. Please try the connection process again.';
+          } else {
+            userMessage = err.message;
+          }
+        }
+        
+        setError(userMessage);
         setStatus('error');
       }
     };
