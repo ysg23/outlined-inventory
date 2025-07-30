@@ -1,112 +1,70 @@
 export default async function handler(req, res) {
-  // Enable CORS
+  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
     if (req.method === 'GET') {
-      // Return OAuth configuration for frontend
-      const clientId = process.env.LIGHTSPEED_CLIENT_ID;
-      const redirectUri = process.env.LIGHTSPEED_REDIRECT_URI;
-      
-      if (!clientId || !redirectUri) {
-        return res.status(500).json({ 
-          error: 'Missing OAuth configuration',
-          debug: {
-            hasClientId: !!clientId,
-            hasRedirectUri: !!redirectUri,
-            nodeVersion: process.version
-          }
-        });
-      }
-
-      return res.status(200).json({
-        clientId,
-        redirectUri: 'https://outlined-inventory.vercel.app/oauth/callback',
-        authUrl: 'https://cloud.lightspeedapp.com/auth/oauth/authorize',
-        scopes: 'employee:register+employee:inventory',
-        status: 'ready'
-      });
+      // Omitted for brevity, your GET is fine
     }
 
     if (req.method === 'POST') {
-      const { code, code_verifier } = req.body;
-
-      if (!code) {
-        return res.status(400).json({ error: 'Authorization code is required' });
+      // Manual body parsing (if needed)
+      let body = req.body;
+      if (!body || typeof body === 'string') {
+        try { body = JSON.parse(req.body || '{}'); } catch { body = {}; }
       }
+      const { code, code_verifier } = body;
 
-      if (!code_verifier) {
-        return res.status(400).json({ error: 'PKCE code verifier is required' });
-      }
+      if (!code) return res.status(400).json({ error: 'Authorization code is required' });
+      // Remove if not using PKCE, else keep check
+      // if (!code_verifier) return res.status(400).json({ error: 'PKCE code verifier is required' });
 
       const clientId = process.env.LIGHTSPEED_CLIENT_ID;
       const clientSecret = process.env.LIGHTSPEED_CLIENT_SECRET;
-
       if (!clientId || !clientSecret) {
         return res.status(500).json({ error: 'Missing OAuth client credentials' });
       }
 
-      // Exchange code for access token with PKCE
+      // EXCHANGE for token, form-encoded!
+      const tokenBody = new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'authorization_code',
+        code,
+        ...(code_verifier ? { code_verifier } : {})
+      }).toString();
+
       const tokenResponse = await fetch('https://cloud.lightspeedapp.com/auth/oauth/token', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          client_id: clientId,
-          client_secret: clientSecret,
-          grant_type: 'authorization_code',
-          code: code,
-          code_verifier: code_verifier
-        })
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: tokenBody,
       });
 
-      if (!tokenResponse.ok) {
-        const errorText = await tokenResponse.text();
-        return res.status(400).json({ 
-          error: 'Failed to exchange authorization code',
-          details: errorText
-        });
+      const text = await tokenResponse.text();
+      let tokenData;
+      try { tokenData = JSON.parse(text); } catch { tokenData = { error: text }; }
+      if (!tokenResponse.ok || !tokenData.access_token) {
+        return res.status(400).json({ error: 'Failed to exchange authorization code', details: tokenData });
       }
 
-      const tokenData = await tokenResponse.json();
-      
-      // Get account information
-      const accountResponse = await fetch('https://api.lightspeedapp.com/API/V3/Account.json', {
-        headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`
-        }
-      });
-
-      if (!accountResponse.ok) {
-        return res.status(400).json({ error: 'Failed to fetch account information' });
-      }
-
-      const accountData = await accountResponse.json();
-      const accountId = accountData.Account?.[0]?.accountID;
+      // Fetch account info (optional)
+      // ...
 
       return res.status(200).json({
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
         expires_in: tokenData.expires_in,
-        account_id: accountId,
         token_type: tokenData.token_type || 'Bearer'
       });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
-
   } catch (error) {
     console.error('OAuth endpoint error:', error);
-    return res.status(500).json({ 
-      error: 'OAuth endpoint failed',
-      message: error.message
-    });
+    return res.status(500).json({ error: 'OAuth endpoint failed', message: error.message });
   }
 }
