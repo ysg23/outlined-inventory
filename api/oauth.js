@@ -35,10 +35,14 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { code } = req.body;
+      const { code, code_verifier } = req.body;
 
       if (!code) {
         return res.status(400).json({ error: 'Authorization code is required' });
+      }
+
+      if (!code_verifier) {
+        return res.status(400).json({ error: 'PKCE code verifier is required' });
       }
 
       const clientId = process.env.LIGHTSPEED_CLIENT_ID;
@@ -48,7 +52,7 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Missing OAuth client credentials' });
       }
 
-      // Exchange code for access token
+      // Exchange code for access token with PKCE
       const tokenResponse = await fetch('https://cloud.lightspeedapp.com/auth/oauth/token', {
         method: 'POST',
         headers: {
@@ -58,7 +62,8 @@ export default async function handler(req, res) {
           client_id: clientId,
           client_secret: clientSecret,
           grant_type: 'authorization_code',
-          code: code
+          code: code,
+          code_verifier: code_verifier
         })
       });
 

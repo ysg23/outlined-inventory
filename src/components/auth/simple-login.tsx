@@ -7,28 +7,65 @@ import { ExternalLink, Shield, Loader2 } from 'lucide-react';
 export function SimpleLogin() {
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleOAuthLogin = () => {
+  const handleOAuthLogin = async () => {
     setIsLoading(true);
     
-    // Generate state for security
-    const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    localStorage.setItem('lightspeed-oauth-state', state);
+    try {
+      // Generate state for security
+      const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('lightspeed-oauth-state', state);
 
-    // Direct OAuth URL with hardcoded values to avoid API call
-    const oauthParams = new URLSearchParams({
-      client_id: '0da080a6fe48646365e4ebb427623d45179c98d306c270090b30c8d507c95e0',
-      redirect_uri: 'https://outlined-inventory.vercel.app/oauth/callback',
-      scope: 'employee:register employee:inventory',
-      state: state,
-      response_type: 'code'
-    });
+      // Generate PKCE code verifier and challenge (required by Lightspeed)
+      const codeVerifier = generateCodeVerifier();
+      const codeChallenge = await generateCodeChallenge(codeVerifier);
+      
+      // Store code verifier for later use in token exchange
+      localStorage.setItem('lightspeed-code-verifier', codeVerifier);
 
-    const oauthUrl = `https://cloud.lightspeedapp.com/auth/oauth/authorize?${oauthParams}`;
-    
-    console.log('Redirecting to OAuth URL:', oauthUrl);
-    
-    // Redirect to Lightspeed OAuth
-    window.location.href = oauthUrl;
+      // Direct OAuth URL with hardcoded values to avoid API call
+      const oauthParams = new URLSearchParams({
+        client_id: '0da080a6fe48646365e4ebb427623d45179c98d306c270090b30c8d507c95e0',
+        redirect_uri: 'https://outlined-inventory.vercel.app/oauth/callback',
+        scope: 'employee:register employee:inventory',
+        state: state,
+        response_type: 'code',
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256'
+      });
+
+      const oauthUrl = `https://cloud.lightspeedapp.com/auth/oauth/authorize?${oauthParams}`;
+      
+      console.log('Redirecting to OAuth URL:', oauthUrl);
+      
+      // Redirect to Lightspeed OAuth
+      window.location.href = oauthUrl;
+    } catch (error) {
+      console.error('OAuth login error:', error);
+      setIsLoading(false);
+    }
+  };
+
+  // Generate PKCE code verifier (43-128 characters, base64url safe)
+  const generateCodeVerifier = (): string => {
+    const array = new Uint8Array(64);
+    crypto.getRandomValues(array);
+    return btoa(String.fromCharCode(...array))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '')
+      .substring(0, 128);
+  };
+
+  // Generate PKCE code challenge (SHA256 hash of verifier, base64url encoded)
+  const generateCodeChallenge = async (verifier: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(verifier);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    const base64String = btoa(String.fromCharCode(...new Uint8Array(digest)));
+    return base64String
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
   };
 
   const handleDemoMode = () => {

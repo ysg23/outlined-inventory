@@ -33,13 +33,22 @@ export function LoginForm() {
       const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       localStorage.setItem('lightspeed-oauth-state', state);
 
+      // Generate PKCE code verifier and challenge (required by Lightspeed)
+      const codeVerifier = generateCodeVerifier();
+      const codeChallenge = await generateCodeChallenge(codeVerifier);
+      
+      // Store code verifier for later use in token exchange
+      localStorage.setItem('lightspeed-code-verifier', codeVerifier);
+
       // Build OAuth URL using Lightspeed R-Series OAuth endpoint
       const oauthParams = new URLSearchParams({
         client_id: oauthConfig.clientId,
         redirect_uri: oauthConfig.redirectUri,
         scope: oauthConfig.scopes,
         state: state,
-        response_type: 'code'
+        response_type: 'code',
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256'
       });
 
       const oauthUrl = `${oauthConfig.authUrl}?${oauthParams}`;
@@ -53,6 +62,29 @@ export function LoginForm() {
       alert('Failed to initiate OAuth login. Please try again.');
       setIsLoading(false);
     }
+  };
+
+  // Generate PKCE code verifier (43-128 characters, base64url safe)
+  const generateCodeVerifier = (): string => {
+    const array = new Uint8Array(64);
+    crypto.getRandomValues(array);
+    return btoa(String.fromCharCode(...array))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '')
+      .substring(0, 128);
+  };
+
+  // Generate PKCE code challenge (SHA256 hash of verifier, base64url encoded)
+  const generateCodeChallenge = async (verifier: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(verifier);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    const base64String = btoa(String.fromCharCode(...new Uint8Array(digest)));
+    return base64String
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
   };
 
   const handleDemoMode = () => {

@@ -33,6 +33,12 @@ export function OAuthCallback() {
           throw new Error('Invalid OAuth state - possible CSRF attack');
         }
 
+        // Get the stored code verifier for PKCE
+        const codeVerifier = localStorage.getItem('lightspeed-code-verifier');
+        if (!codeVerifier) {
+          throw new Error('Missing PKCE code verifier - possible security issue');
+        }
+
         // Exchange authorization code for access token
         const tokenResponse = await fetch('/api/oauth', {
           method: 'POST',
@@ -41,7 +47,8 @@ export function OAuthCallback() {
           },
           body: JSON.stringify({
             code: code,
-            state: state
+            state: state,
+            code_verifier: codeVerifier
           })
         });
 
@@ -71,9 +78,10 @@ export function OAuthCallback() {
         // Mark as authenticated
         localStorage.setItem('lightspeed-authenticated', 'true');
         
-        // Clean up OAuth state
+        // Clean up OAuth state and PKCE verifier
         localStorage.removeItem('lightspeed-oauth-state');
         localStorage.removeItem('lightspeed-oauth-domain');
+        localStorage.removeItem('lightspeed-code-verifier');
 
         setStatus('success');
         
