@@ -9,7 +9,7 @@ Set these environment variables in your Vercel dashboard:
 ```bash
 LIGHTSPEED_CLIENT_ID=your_client_id_from_lightspeed
 LIGHTSPEED_CLIENT_SECRET=your_client_secret_from_lightspeed
-LIGHTSPEED_REDIRECT_URI=https://inventory.outlined.ca/oauth/callback
+LIGHTSPEED_REDIRECT_URI=https://outlined-inventory.vercel.app/oauth/callback
 LIGHTSPEED_CLUSTER=us1
 ```
 
@@ -90,7 +90,7 @@ For local development, use:
 # Set in .env.local
 LIGHTSPEED_CLIENT_ID=your_client_id
 LIGHTSPEED_CLIENT_SECRET=your_client_secret  
-LIGHTSPEED_REDIRECT_URI=http://localhost:3000/oauth/callback
+LIGHTSPEED_REDIRECT_URI=https://outlined-inventory.vercel.app/oauth/callback
 LIGHTSPEED_CLUSTER=us1
 
 # Start dev server

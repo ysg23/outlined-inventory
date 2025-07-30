@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       clientId,
-      redirectUri,
+      redirectUri: 'https://outlined-inventory.vercel.app/oauth/callback',
       authUrl: 'https://cloud.lightspeedapp.com/auth/oauth/authorize',
       scopes: 'employee:register+employee:inventory'
     });
